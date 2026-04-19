@@ -1,0 +1,9 @@
+*.qcow2
+*.ova
+*.iso
+*.vdi
+*.img
+*.log
+*.zip
+*.DS_Store
+old/

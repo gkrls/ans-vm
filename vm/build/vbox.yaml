@@ -1,0 +1,48 @@
+#cloud-config
+hostname: ans-vm
+manage_etc_hosts: true
+
+users:
+  - name: ans
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo,vboxsf
+
+chpasswd:
+  list: |
+    ans:ans
+  expire: false
+
+ssh_pwauth: true
+
+packages:
+  - xauth
+  - x11-xserver-utils
+  - virtualbox-guest-utils
+
+write_files:
+  - path: /etc/fstab
+    append: true
+    content: |
+      hostshare /home/ans/share vboxsf defaults,uid=1000,gid=1000,nofail 0 0
+  - path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    content: |
+      network: {config: disabled}
+
+runcmd:
+  - mkdir -p /home/ans/share
+  - chown ans:ans /home/ans/share
+  - sed -i 's/#\?X11Forwarding.*/X11Forwarding yes/' /etc/ssh/sshd_config
+  - sed -i 's/#\?X11DisplayOffset.*/X11DisplayOffset 10/' /etc/ssh/sshd_config
+  - sed -i 's/#\?X11UseLocalhost.*/X11UseLocalhost yes/' /etc/ssh/sshd_config
+  - systemctl restart sshd
+  - echo 'Defaults env_keep += "DISPLAY XAUTHORITY PYTHONPATH SDE SDE_INSTALL"' >> /etc/sudoers
+  - sed -i 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/' /etc/default/grub
+  - update-grub
+  - systemctl disable systemd-networkd-wait-online.service
+  - echo 'export XAUTHORITY=$HOME/.Xauthority' >> /home/ans/.bashrc
+
+power_state:
+  mode: poweroff
+  message: "Cloud-init setup complete. Shutting down."
+  condition: true
